@@ -1,0 +1,31 @@
+# Core dependencies
+numpy>=1.20.0
+scipy>=1.7.0
+
+# RL training
+ray[rllib]>=2.0.0
+torch>=1.10.0
+gymnasium>=0.26.0
+
+# Environment
+pettingzoo>=1.22.0  # For multi-agent scenarios
+
+# Visualization
+matplotlib>=3.4.0
+opencv-python>=4.5.0
+pygame>=2.1.0  # Optional for real-time visualization
+imageio>=2.9.0  # For video creation
+
+# Utils
+tensorboard>=2.8.0
+tqdm>=4.62.0
+pyyaml>=5.4.0
+
+# Development (optional)
+pytest>=7.0.0
+black>=22.0.0
+flake8>=4.0.0
+mypy>=0.950
+
+# Note: For Mac M1/M2 users, you may need to install torch separately:
+# pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
