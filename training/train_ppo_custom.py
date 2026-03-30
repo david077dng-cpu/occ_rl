@@ -277,8 +277,14 @@ def collect_rollouts(env: OccupancyGridEnv,
     return data
 
 
-def train_ppo(config: PPOConfig):
-    """Main PPO training loop."""
+def train_ppo(config: PPOConfig, pretrained_ckpt_path: Optional[str] = None):
+    """Main PPO training loop.
+
+    Args:
+        config: PPO configuration.
+        pretrained_ckpt_path: Path to pretrained checkpoint (from behavior cloning).
+            If provided, loads policy weights before training.
+    """
 
     # Setup
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -302,6 +308,13 @@ def train_ppo(config: PPOConfig):
 
     # Create policy
     policy = ActorCriticPolicy(action_dim=3, hidden_size=256).to(device)
+
+    # Load pretrained weights if provided
+    if pretrained_ckpt_path is not None:
+        print(f"Loading pretrained checkpoint from: {pretrained_ckpt_path}")
+        ckpt = torch.load(pretrained_ckpt_path, map_location=device)
+        policy.load_state_dict(ckpt['policy_state_dict'])
+        print(f"Successfully loaded pretrained weights")
 
     # Create optimizer
     optimizer = optim.Adam(policy.parameters(), lr=config.lr, eps=1e-5)
@@ -466,6 +479,8 @@ def main():
     parser.add_argument('--vf-coef', type=float, default=0.5, help='Value function coefficient')
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
     parser.add_argument('--output-dir', type=str, default='./ppo_training_output', help='Output directory')
+    parser.add_argument('--pretrained-ckpt', type=str, default=None,
+                        help='Path to pretrained checkpoint (from behavior cloning) to initialize from')
 
     args = parser.parse_args()
 
@@ -486,7 +501,7 @@ def main():
     )
 
     # Train
-    train_ppo(config)
+    train_ppo(config, pretrained_ckpt_path=args.pretrained_ckpt)
 
 
 if __name__ == '__main__':
