@@ -7,10 +7,11 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
-sys.path.insert(0, '/Users/bobinding/Documents/robot/xrollout')
+# Add project root to path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from occupancy_grid_rl.envs import OccupancyGridEnv
-from occupancy_grid_rl.training.train_ppo_custom import ActorCriticPolicy
+from envs import OccupancyGridEnv
+from training.train_ppo_custom import ActorCriticPolicy
 
 def load_policy(checkpoint_path, device='cpu'):
     """Load trained policy from checkpoint."""
@@ -31,7 +32,7 @@ def run_episode(env, policy, seed=None, deterministic=True, device='cpu'):
     total_reward = 0
 
     while not done and steps < env.max_episode_steps:
-        positions.append(env.robot_position.copy())
+        positions.append(env.robot_state[0:2].copy())
 
         obs_tensor = {k: torch.FloatTensor(v).unsqueeze(0).to(device) for k, v in obs.items()}
         with torch.no_grad():
@@ -54,8 +55,8 @@ def run_episode(env, policy, seed=None, deterministic=True, device='cpu'):
         'total_reward': total_reward,
         'steps': steps,
         'goal_reached': info.get('goal_reached', False),
-        'goal_position': env.goal_position.copy(),
-        'occupancy_grid': env.occupancy_grid.copy()
+        'goal_position': env.grid_world.goal_position.copy(),
+        'occupancy_grid': env.grid_world.occupancy_grid.copy()
     }
 
 def plot_episode(result, episode_num, save_path=None):
@@ -110,8 +111,8 @@ def plot_episode(result, episode_num, save_path=None):
     return fig
 
 def main():
-    checkpoint_path = 'ppo_3m_output/checkpoint_3004416.pt'
-    output_dir = './visualizations_3m'
+    checkpoint_path = 'ppo_training_output/final_model.pt'
+    output_dir = './visualizations'
     device = 'cpu'
     n_episodes = 5
 
