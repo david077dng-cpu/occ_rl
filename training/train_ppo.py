@@ -161,6 +161,12 @@ def parse_args():
         help="Resume from checkpoint path"
     )
     parser.add_argument(
+        "--pretrained-ckpt",
+        type=str,
+        default=None,
+        help="Path to pretrained behavior cloning checkpoint to initialize from"
+    )
+    parser.add_argument(
         "--checkpoint-freq",
         type=int,
         default=50,
@@ -462,6 +468,49 @@ def main():
 
     # Create algorithm
     algo = PPO(config=config)
+
+    # Load pretrained behavior cloning checkpoint if provided
+    if args.pretrained_ckpt:
+        print(f"Loading pretrained behavior cloning checkpoint: {args.pretrained_ckpt}")
+        import torch
+        ckpt = torch.load(args.pretrained_ckpt, map_location='cpu')
+
+        # Get the RLlib model
+        policy = algo.get_policy()
+        model = policy.model
+
+        # Load weights from BC (ActorCriticPolicy) to RLlib (GridNavTorchModel)
+        # The architectures are similar but have different naming conventions
+        bc_state = ckpt['policy_state_dict']
+
+        # Create mapping from BC names to RLlib names
+        name_mapping = {
+            'grid_encoder.0.weight': 'grid_encoder.conv.0.weight',
+            'grid_encoder.0.bias': 'grid_encoder.conv.0.bias',
+            'grid_encoder.2.weight': 'grid_encoder.conv.2.weight',
+            'grid_encoder.2.bias': 'grid_encoder.conv.2.bias',
+            'grid_encoder.5.weight': 'grid_encoder.fc.0.weight',
+            'grid_encoder.5.bias': 'grid_encoder.fc.0.bias',
+            'scalar_encoder.0.weight': 'scalar_encoder.mlp.0.weight',
+            'scalar_encoder.0.bias': 'scalar_encoder.mlp.0.bias',
+            'shared.0.weight': 'shared_fc.0.weight',
+            'shared.0.bias': 'shared_fc.0.bias',
+            'shared.2.weight': 'shared_fc.2.weight',
+            'shared.2.bias': 'shared_fc.2.bias',
+        }
+
+        # Load the mapped weights
+        model_state = model.state_dict()
+        loaded_count = 0
+
+        for bc_key, rllib_key in name_mapping.items():
+            if bc_key in bc_state and rllib_key in model_state:
+                model_state[rllib_key] = bc_state[bc_key]
+                loaded_count += 1
+
+        print(f"Loaded {loaded_count} layers from pretrained BC checkpoint")
+        model.load_state_dict(model_state)
+        print(f"Successfully initialized model with pretrained BC weights")
 
     # Load checkpoint if resuming
     start_iteration = 0
