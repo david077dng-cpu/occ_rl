@@ -26,9 +26,6 @@ from collections import deque
 
 import numpy as np
 
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 # Try to import PyTorch
 try:
     import torch

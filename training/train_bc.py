@@ -19,10 +19,6 @@ import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader, random_split
 from tqdm import tqdm
 
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from envs import OccupancyGridEnv
 from training.train_ppo_custom import ActorCriticPolicy
 from llm_teacher.llm_teacher import LLMTeacher

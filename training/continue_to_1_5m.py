@@ -7,11 +7,9 @@ for an additional 1M timesteps to reach 1.5M total.
 """
 import os
 import sys
+import argparse
 import torch
 import numpy as np
-
-
-sys.path.insert(0, '/Users/bobinding/Documents/robot/xrollout')
 
 from envs import OccupancyGridEnv
 from training.train_ppo_custom import (
@@ -19,6 +17,9 @@ from training.train_ppo_custom import (
 )
 import torch.optim as optim
 import torch.nn as nn
+
+# Project root is where output directory lives
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def evaluate_policy(env, policy, n_episodes=20):
     """Quick evaluation."""
@@ -47,12 +48,23 @@ def evaluate_policy(env, policy, n_episodes=20):
     }
 
 def main():
-    # Configuration
-    checkpoint_path = 'ppo_training_output_500k/final_model.pt'
-    output_dir = './ppo_1_5m_output'
-    additional_timesteps = 1000000  # 1M additional timesteps
-    device = torch.device('cpu')
+    parser = argparse.ArgumentParser(description='Continue PPO training from 500K to 1.5M timesteps')
+    parser.add_argument('--checkpoint', type=str,
+                        default=os.path.join(PROJECT_ROOT, 'output', 'ppo_training_output', 'final_model.pt'),
+                        help='Path to starting checkpoint')
+    parser.add_argument('--output-dir', type=str,
+                        default=os.path.join(PROJECT_ROOT, 'output', 'ppo_1_5m_output'),
+                        help='Output directory for checkpoints')
+    parser.add_argument('--additional-timesteps', type=int, default=1000000,
+                        help='Additional timesteps to train')
+    args = parser.parse_args()
 
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f"Using device: {device}")
+
+    checkpoint_path = args.checkpoint
+    output_dir = args.output_dir
+    additional_timesteps = args.additional_timesteps
     os.makedirs(output_dir, exist_ok=True)
 
     print('=' * 80)

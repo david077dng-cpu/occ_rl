@@ -9,6 +9,7 @@ This script loads a trained checkpoint and generates visualizations including:
 """
 import os
 import sys
+import argparse
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
@@ -16,10 +17,11 @@ import matplotlib.patches as patches
 from matplotlib.animation import FuncAnimation
 import imageio
 
-sys.path.insert(0, '/Users/bobinding/Documents/robot/xrollout')
-
 from envs import OccupancyGridEnv
 from training.train_ppo_custom import ActorCriticPolicy
+
+# Project root is where output directory lives
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def load_policy(checkpoint_path, device='cpu'):
     """Load trained policy from checkpoint."""
@@ -248,12 +250,23 @@ def plot_summary_statistics(results, save_path=None):
     return fig
 
 def main():
-    # Configuration
-    checkpoint_path = 'ppo_3m_output/checkpoint_3004416.pt'
-    output_dir = './visualizations_3m'
-    n_episodes = 10
-    device = torch.device('cpu')
+    parser = argparse.ArgumentParser(description='Visualize trained PPO policy')
+    parser.add_argument('--checkpoint', type=str,
+                        default=os.path.join(PROJECT_ROOT, 'output', 'ppo_3m_output', 'checkpoint_3004416.pt'),
+                        help='Path to trained checkpoint')
+    parser.add_argument('--output-dir', type=str,
+                        default=os.path.join(PROJECT_ROOT, 'output', 'visualizations_3m'),
+                        help='Output directory for visualizations')
+    parser.add_argument('--n-episodes', type=int, default=10,
+                        help='Number of episodes to visualize')
+    args = parser.parse_args()
 
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f"Using device: {device}")
+
+    checkpoint_path = args.checkpoint
+    output_dir = args.output_dir
+    n_episodes = args.n_episodes
     os.makedirs(output_dir, exist_ok=True)
 
     print('=' * 80)

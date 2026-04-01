@@ -11,9 +11,6 @@ import torch
 import numpy as np
 import argparse
 
-# Add project root to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from envs import OccupancyGridEnv
 from training.train_ppo_custom import (
     ActorCriticPolicy, collect_rollouts, compute_gae

@@ -3,15 +3,16 @@ Simple visualization of the trained 3M PPO policy.
 """
 import os
 import sys
+import argparse
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Add project root to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from envs import OccupancyGridEnv
 from training.train_ppo_custom import ActorCriticPolicy
+
+# Project root is where output directory lives
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def load_policy(checkpoint_path, device='cpu'):
     """Load trained policy from checkpoint."""
@@ -111,10 +112,21 @@ def plot_episode(result, episode_num, save_path=None):
     return fig
 
 def main():
-    checkpoint_path = 'ppo_training_output/final_model.pt'
-    output_dir = './visualizations'
-    device = 'cpu'
-    n_episodes = 5
+    parser = argparse.ArgumentParser(description='Simple visualization of trained PPO policy')
+    parser.add_argument('--checkpoint', type=str,
+                        default=os.path.join(PROJECT_ROOT, 'output', 'ppo_training_output', 'final_model.pt'),
+                        help='Path to trained checkpoint')
+    parser.add_argument('--output-dir', type=str,
+                        default=os.path.join(PROJECT_ROOT, 'output', 'visualizations'),
+                        help='Output directory for visualizations')
+    parser.add_argument('--n-episodes', type=int, default=5,
+                        help='Number of episodes to visualize')
+    args = parser.parse_args()
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    checkpoint_path = args.checkpoint
+    output_dir = args.output_dir
+    n_episodes = args.n_episodes
 
     os.makedirs(output_dir, exist_ok=True)
 
@@ -128,6 +140,7 @@ def main():
 
     # Load policy
     print('Loading policy...')
+    print(f"Using device: {device}")
     policy = load_policy(checkpoint_path, device)
     print('Policy loaded successfully!')
     print()

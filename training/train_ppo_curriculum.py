@@ -26,9 +26,6 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions import Normal
 
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from envs import OccupancyGridEnv
 from training.train_ppo_custom import (
     PPOConfig, ActorCriticPolicy, compute_gae, collect_rollouts

@@ -26,9 +26,6 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions import Normal
 
-# Add project root to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from envs import OccupancyGridEnv
 
 

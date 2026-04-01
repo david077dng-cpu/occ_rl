@@ -126,7 +126,8 @@ def main():
     parser.add_argument('--output-dir', type=str, default='./curriculum_output')
     args = parser.parse_args()
 
-    device = torch.device('cpu')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f"Using device: {device}")
     os.makedirs(args.output_dir, exist_ok=True)
 
     torch.manual_seed(args.seed)

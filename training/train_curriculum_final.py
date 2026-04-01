@@ -8,14 +8,17 @@ Final Curriculum Learning Implementation
 - Phase 4: 5+2 obstacles, 400K steps, target 70%
 """
 
-import os, sys, torch, numpy as np
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import os, sys, time, argparse, torch, numpy as np
+
 from envs import OccupancyGridEnv
 from training.train_ppo_custom import (
     ActorCriticPolicy, collect_rollouts, compute_gae
 )
 import torch.optim as optim
 import torch.nn as nn
+
+# Project root is where output directory lives
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def evaluate(env, policy, n_episodes=20):
     """Quick evaluation."""
@@ -110,6 +113,14 @@ def train_phase(env, policy, optimizer, n_steps, batch_size, n_epochs, device, t
 
 
 def main():
+    parser = argparse.ArgumentParser(description='4-phase final curriculum learning for PPO')
+    parser.add_argument('--output-dir', type=str,
+                        default=os.path.join(PROJECT_ROOT, 'output', 'curriculum_v2_output'),
+                        help='Output directory for checkpoints')
+    parser.add_argument('--seed', type=int, default=42,
+                        help='Random seed')
+    args = parser.parse_args()
+
     # Curriculum phases: (name, static, dynamic, target_timesteps)
     phases = [
         ("Phase 1: Easy (0 obstacles)", 0, 0, 100000),
@@ -118,9 +129,13 @@ def main():
         ("Phase 4: Expert (5+2 obstacles)", 5, 2, 250000),
     ]
 
-    device = torch.device('cpu')
-    output_dir = './curriculum_v2_output'
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f"Using device: {device}")
+    output_dir = args.output_dir
     os.makedirs(output_dir, exist_ok=True)
+
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
 
     # Create policy
     policy = ActorCriticPolicy(action_dim=3, hidden_size=256).to(device)
@@ -132,6 +147,7 @@ def main():
 
     total_timesteps = 0
     overall_best_success = 0.0
+    overall_start_time = time.time()
 
     # Train through phases
     for phase_idx, (name, static, dynamic, target_timesteps) in enumerate(phases, 1):
@@ -151,18 +167,22 @@ def main():
         )
 
         # Train this phase
+        phase_start_time = time.time()
         phase_timesteps = train_phase(
             env, policy, optimizer,
             n_steps=2048, batch_size=64, n_epochs=10,
             device=device, total_timesteps_target=target_timesteps
         )
         total_timesteps += phase_timesteps
+        phase_elapsed = time.time() - phase_start_time
 
         # Evaluate phase
         print(f"\nEvaluating {name}...")
         eval_stats = evaluate(env, policy, n_episodes=50)
         print(f"Success Rate: {eval_stats['success_rate']*100:.1f}% ({eval_stats['successes']}/50)")
         print(f"Mean Reward: {eval_stats['mean_reward']:.2f}")
+        steps_per_sec = phase_timesteps / phase_elapsed
+        print(f"Time: {phase_elapsed:.2f}s, {steps_per_sec:.1f} steps/sec")
 
         if eval_stats['success_rate'] > overall_best_success:
             overall_best_success = eval_stats['success_rate']
@@ -186,10 +206,14 @@ def main():
         'total_timesteps': total_timesteps,
     }, final_path)
 
+    overall_elapsed = time.time() - overall_start_time
+    overall_steps_per_sec = total_timesteps / overall_elapsed
+
     print("\n" + "=" * 80)
     print("CURRICULUM LEARNING COMPLETE!")
     print(f"Total timesteps: {total_timesteps:,}")
     print(f"Best success rate: {overall_best_success*100:.1f}%")
+    print(f"Total time: {overall_elapsed:.2f}s, Average: {overall_steps_per_sec:.1f} steps/sec")
     print(f"Final model: {final_path}")
     print("=" * 80)
 
