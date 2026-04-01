@@ -58,7 +58,9 @@ def continue_training(
     gae_lambda = 0.95
     clip_range = 0.2
     vf_coef = 0.5
-    ent_coef = 0.01
+    # Entropy annealing: decay from 0.01 to 0.001 over the additional training
+    ent_coef_start = 0.01
+    ent_coef_end = 0.001
     max_grad_norm = 0.5
 
     # Create environment (full difficulty)
@@ -79,8 +81,12 @@ def continue_training(
     total_timesteps = previous_timesteps
     update_num = 0
     best_success_rate = 0.0
+    total_updates = (target_timesteps - previous_timesteps) // n_steps
 
     while total_timesteps < target_timesteps:
+        # Anneal entropy coefficient
+        progress = update_num / total_updates if total_updates > 0 else 1.0
+        ent_coef = ent_coef_start * (1 - progress) + ent_coef_end * progress
         # Collect rollouts
         rollout = collect_rollouts(env, policy, n_steps, device)
 
